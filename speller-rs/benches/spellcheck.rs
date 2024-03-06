@@ -1,19 +1,24 @@
+use std::time::Duration;
 use criterion::{Criterion, criterion_group, criterion_main};
-use speller::Speller;
+use speller_rs::Speller;
 
 fn spellcheck() {
-    let speller = Speller::builder().build().unwrap();
-    let word = "Melanynijholtxo";
-    // let start_time = std::time::Instant::now();
-    let correct = speller.correct(word);
-    // let elapsed = start_time.elapsed();
-    // println!("Elapsed time: {:?}", elapsed);
-    // println!("The correct word for '{}' is {:?}", word, correct);
+    let speller = Speller::builder().
+        language(vec![]).
+        local_dictionary(Some(vec!["../data/en.json".to_string()])).
+        build().unwrap();
+    let word = "zayraizquierdo_";
+    let _ = speller.correction(word);
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("spellcheck", |b| b.iter(|| spellcheck()));
 }
 
-criterion_group!(benches, criterion_benchmark);
+criterion_group!(
+    name = benches;
+    config = Criterion::default().measurement_time(Duration::from_secs(100));
+    targets = criterion_benchmark
+);
+
 criterion_main!(benches);

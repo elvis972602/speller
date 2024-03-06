@@ -1,16 +1,19 @@
 mod string;
+mod error;
 
-use std::collections::{HashMap, HashSet};
-use std::error::Error;
+use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::fs::File;
-use std::io::{BufRead, BufReader, Read};
+use std::io::BufReader;
 use std::path::Path;
+use levenshtein_automata::{Distance, LevenshteinAutomatonBuilder};
+use crate::error::BuildError;
 use crate::string::PUNCTUATION;
 
 pub struct Speller {
     distance: i32,
     case_sensitive: bool,
+    automaton_builder: LevenshteinAutomatonBuilder,
     word_frequency: WordFrequency,
 }
 
@@ -19,91 +22,9 @@ impl Speller {
         SpellerBuilder::new()
     }
 
-    pub fn correct(&self, word: &str) -> Option<String> {
-        let word = if self.case_sensitive { word.to_string() } else { word.to_lowercase() };
-
-        let candidates = self.candidates(&word);
-
-        if candidates.is_none() || candidates.as_ref().unwrap().is_empty() {
-            return None;
-        }
-
-        candidates.unwrap().into_iter().max_by_key(|candidate| {
-            // println!("candidate: {:?}, score: {:?}", candidate, self.word_frequency.dictionary.get(candidate).unwrap_or(&0));
-            self.word_frequency.dictionary.get(candidate).unwrap_or(&0)
-        })
-    }
-
-    pub fn candidates(&self, word: &str) -> Option<Vec<String>> {
-        if self.known(word) {
-            return Some(vec![word.to_string()]);
-        }
-
-        let res: Vec<String> = self.edit_distance_1(word);
-
-        let tmp: Vec<String> = self.known_set(res.clone());
-        if tmp.len() > 0 {
-            return Some(tmp);
-        }
-
-        if self.distance == 2 {
-            let tmp: Vec<String> = self.known_set(self.edit_distance_alt(res));
-            if !tmp.is_empty() {
-                return Some(tmp);
-            }
-        }
-
-        None
-    }
-
-    pub fn edit_distance_1(&self, word: &str) -> Vec<String> {
-        if !self.should_check(word) {
-            return vec![];
-        }
-        let mut results: Vec<String> = Vec::new();
-        let word_char = word.chars().collect::<Vec<char>>();
-        let len = word_char.len();
-
-        for i in 0..len {
-            let (left, right) = word_char.split_at(i);
-
-            if right.len() > 0 {
-                results.push(left.iter().chain(&right[1..]).collect());
-            }
-
-            if right.len() > 1 {
-                results.push(left.iter().chain(&right[1..2]).chain(&right[0..1]).chain(&right[2..]).collect());
-            }
-
-            self.word_frequency.letters.iter().for_each(|c| {
-                if right.len() > 1 {
-                    results.push(left.iter().chain(&[*c]).chain(&right[1..]).collect());
-                }
-                results.push(left.iter().chain(&[*c]).chain(right.iter()).collect());
-            });
-        }
-
-        results
-    }
-
-    pub fn edit_distance_alt(&self, words: Vec<String>) -> Vec<String> {
-        let tmp_words: Vec<String> = words.into_iter().map(|word| if self.case_sensitive { word } else { word.to_lowercase() }).collect();
-        let mut results: Vec<String> = Vec::new();
-        for word in tmp_words {
-            for w in self.known_set(self.edit_distance_1(&word)) {
-                results.push(w);
-            }
-        }
-        results
-    }
-
     fn known(&self, word: &str) -> bool {
         let word = if self.case_sensitive { word.to_string() } else { word.to_lowercase() };
         self.word_frequency.dictionary.contains_key(&word)
-    }
-
-    fn known_set(&self, words: Vec<String>) -> Vec<String> {
-        words.into_iter().filter(|word| self.known(word) && self.should_check(word)).collect()
     }
 
     fn should_check(&self, word: &str) -> bool {
@@ -111,7 +32,7 @@ impl Speller {
         if len == 1 && PUNCTUATION.contains(&word.chars().next().unwrap()) {
             return false;
         }
-        if len > self.word_frequency.longest_word + 3 {
+        if len > self.word_frequency.longest_word + self.distance as usize {
             return false;
         }
         if word.to_lowercase() == "nan" {
@@ -123,11 +44,56 @@ impl Speller {
         }
         true
     }
+
+    pub fn correction(&self, word: &str) -> Option<String> {
+        if !self.should_check(word) {
+            return None;
+        }
+        if self.known(word) {
+            return Some(word.to_string());
+        }
+        let word = if self.case_sensitive { word.to_string() } else { word.to_lowercase() };
+
+        let dfa = self.automaton_builder.build_dfa(&word);
+
+        let mut d2 = None;
+
+        for item in self.word_frequency.list.iter() {
+            match dfa.eval(item) {
+                Distance::Exact(0) |
+                Distance::Exact(1) => {
+                    return Some(item.to_string());
+                }
+                Distance::Exact(2) => {
+                    if d2.is_none() {
+                        d2 = Some(item.to_string());
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        d2
+    }
+
+    pub fn languages() -> Vec<String> {
+        // find all json files in data folder
+        let paths = std::fs::read_dir("data").unwrap();
+        let mut languages: Vec<String> = vec![];
+        for path in paths {
+            let path = path.unwrap().path();
+            if path.extension() == Some(OsStr::new("json")) {
+                let lang = path.file_stem().unwrap().to_str().unwrap().to_string();
+                languages.push(lang);
+            }
+        }
+        languages
+    }
 }
 
 pub struct SpellerBuilder {
     language: Vec<String>,
-    local_dictionary: Option<String>,
+    local_dictionary: Option<Vec<String>>,
     distance: i32,
     case_sensitive: bool,
 }
@@ -147,8 +113,8 @@ impl SpellerBuilder {
         self
     }
 
-    pub fn local_dictionary(&mut self, local_dictionary: String) -> &mut Self {
-        self.local_dictionary = Some(local_dictionary);
+    pub fn local_dictionary(&mut self, local_dictionary: Option<Vec<String>>) -> &mut Self {
+        self.local_dictionary = local_dictionary;
         self
     }
 
@@ -162,31 +128,28 @@ impl SpellerBuilder {
         self
     }
 
-    pub fn build(&self) -> Result<Speller, Box<dyn Error>> {
+    pub fn build(&self) -> Result<Speller, BuildError> {
         let mut speller = Speller {
             distance: self.distance,
             case_sensitive: self.case_sensitive,
+            automaton_builder: LevenshteinAutomatonBuilder::new(self.distance as u8, true),
             word_frequency: WordFrequency::new(self.case_sensitive),
         };
 
         if let Some(local_dictionary) = &self.local_dictionary {
-            let path = Path::new(local_dictionary);
-            if path.extension() == Some(OsStr::new("json")) {
-                if let Err(e) = speller.word_frequency.load_json(path) {
-                    eprintln!("Error loading JSON file: {}", e);
-                    return Err(e);
+            for local_dictionary in local_dictionary {
+                let path = Path::new(local_dictionary);
+                if path.extension() == Some(OsStr::new("json")) {
+                    speller.word_frequency.load_json(path)?;
+                } else {
+                    return Err(BuildError::NotJsonFile);
                 }
-            } else {
-                panic!("Local dictionary must be a JSON file")
             }
         }
         if self.language.len() > 0 {
             for lang in &self.language {
                 let path = format!("data/{}.json", lang);
-                if let Err(e) = speller.word_frequency.load_json(path) {
-                    eprintln!("Error loading JSON file: {}", e);
-                    return Err(e);
-                }
+                speller.word_frequency.load_json(path)?;
             }
         }
 
@@ -196,26 +159,24 @@ impl SpellerBuilder {
 
 pub struct WordFrequency {
     dictionary: HashMap<String, i32>,
-    total_words: i32,
+    list: Vec<String>,
     unique_words: i32,
     case_sensitive: bool,
     longest_word: usize,
-    letters: HashSet<char>,
 }
 
 impl WordFrequency {
     pub fn new(case_sensitive: bool) -> WordFrequency {
         WordFrequency {
             dictionary: HashMap::new(),
-            total_words: 0,
+            list: vec![],
             unique_words: 0,
             case_sensitive,
             longest_word: 0,
-            letters: HashSet::new(),
         }
     }
 
-    pub fn load_json<T: AsRef<Path>>(&mut self, path: T) -> Result<(), Box<dyn Error>> {
+    pub fn load_json<T: AsRef<Path>>(&mut self, path: T) -> Result<(), BuildError> {
         let file = File::open(path)?;
         let reader = BufReader::new(file);
         let data: HashMap<String, i32> = serde_json::from_reader(reader)?;
@@ -235,9 +196,12 @@ impl WordFrequency {
         *self.dictionary.entry(word).or_insert(0) += count;
     }
     fn update(&mut self) {
-        self.total_words = self.dictionary.values().sum();
+        let mut map_vec: Vec<(&String, &i32)> = self.dictionary.iter().collect();
+        map_vec.sort_by_key(|a| a.1);
+        map_vec.iter().for_each(|(word, _count)| {
+            self.list.push(word.to_string());
+        });
         self.unique_words = self.dictionary.len() as i32;
         self.longest_word = self.dictionary.keys().map(|word| word.len()).max().unwrap_or(0);
-        self.letters = self.dictionary.keys().map(|word| word.chars().map(|c| c).collect::<Vec<char>>()).flatten().collect();
     }
 }
