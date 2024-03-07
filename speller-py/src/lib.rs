@@ -1,7 +1,8 @@
+use ::speller_rs;
 use pyo3::create_exception;
 use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
-use ::speller_rs as speller_rs;
+use std::collections::HashMap;
 
 #[pyclass]
 struct Speller(speller_rs::Speller);
@@ -9,21 +10,39 @@ struct Speller(speller_rs::Speller);
 #[pymethods]
 impl Speller {
     #[new]
-    #[pyo3(text_signature = "(language, distance=2, case_sensitive=False, local_file=None)")]
-    fn new(language: Vec<String>, distance: i32, case_sensitive: bool, local_file: Option<Vec<String>>) -> PyResult<Self> {
-        let speller = speller_rs::Speller::builder()
-            .language(language)
-            .local_dictionary(local_file)
+    #[pyo3(text_signature = "(dict_file, distance, case_sensitive=False, dict=None)")]
+    fn new(
+        dict_file: Vec<String>,
+        distance: i32,
+        case_sensitive: bool,
+        dict: Option<Vec<HashMap<String, i32>>>,
+    ) -> PyResult<Self> {
+        let mut speller_builder = speller_rs::Speller::builder(dict_file);
+        speller_builder
             .distance(distance)
-            .case_sensitive(case_sensitive)
-            .build();
-        let speller = speller.map_err(|e| BuildError::new_err(e.to_string()))?;
+            .case_sensitive(case_sensitive);
+        if let Some(dict) = dict {
+            speller_builder.dict_source(dict);
+        }
+        let speller = speller_builder
+            .build()
+            .map_err(|e| BuildError::new_err(e.to_string()))?;
         Ok(Speller(speller))
     }
 
-    #[pyo3(text_signature = "($self, input)")]
+    #[pyo3(text_signature = "($self, word)")]
     fn correction(&self, word: &str) -> PyResult<Option<String>> {
         Ok(self.0.correction(word))
+    }
+
+    #[pyo3(text_signature = "($self, word, distance)")]
+    fn candidates(&self, word: &str, distance: u8) -> PyResult<Option<Vec<Vec<String>>>> {
+        Ok(self.0.candidates(word, distance))
+    }
+
+    #[pyo3(text_signature = "($self, word1, word2)")]
+    fn edit_distance(&self, word1: &str, word2: &str) -> PyResult<Option<u8>> {
+        Ok(self.0.edit_distance(word1, word2))
     }
 }
 

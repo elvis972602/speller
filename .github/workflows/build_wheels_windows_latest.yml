@@ -1,9 +1,6 @@
 name: Build Wheels (Windows Latest)
 
 on:
-  push:
-    tags:
-      - '*' # Push events to all tags
   workflow_dispatch:
 
 env:
@@ -27,6 +24,18 @@ jobs:
         toolchain: stable
         override: true
         components: rustfmt
+
+    - uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-
         
     - name: Setup Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5.0.0
@@ -35,6 +44,15 @@ jobs:
 
     - name: Install maturin
       run: pip install maturin
+
+    - uses: actions/cache@v3
+      with:
+        path: |
+          ~\AppData\Local\pip\Cache
+          .\speller-py\target
+        key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/Pipfile.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-${{ matrix.python-version }}-
 
     - name: Build wheels
       run: |
@@ -45,5 +63,3 @@ jobs:
       with:
         name: wheels-windows-latest-${{ matrix.python-version }}
         path: speller-py/dist/*.whl
-
-    

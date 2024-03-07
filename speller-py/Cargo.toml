@@ -1,6 +1,6 @@
 [package]
 name = "speller-py"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -10,4 +10,4 @@ crate-type = ["cdylib"]
 
 [dependencies]
 pyo3 = { version = "0.20.3", features = ["extension-module"] }
-speller-rs = { path = "../speller-rs" }
+speller-rs = { path = "../speller-rs" , features = ["serde_json", "csv"] }
