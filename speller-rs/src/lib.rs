@@ -219,14 +219,17 @@ impl SpellerBuilder {
         for local_dictionary in self.local_file.iter() {
             let path = Path::new(local_dictionary);
             match path.extension().and_then(OsStr::to_str) {
+                #[cfg(feature = "serde_json")]
                 Some("json") => {
                     let mut loader = JsonWordLoader::default();
                     speller.word_frequency.load_file(&mut loader, path)?;
                 }
+                #[cfg(feature = "csv")]
                 Some("csv") => {
                     let mut loader = CsvWordLoader::default();
                     speller.word_frequency.load_file(&mut loader, path)?;
                 }
+                #[cfg(feature = "csv")]
                 Some("tsv") => {
                     let mut loader = CsvWordLoader::new().with_delimiter(b'\t');
                     speller.word_frequency.load_file(&mut loader, path)?;

@@ -17,6 +17,7 @@ impl JsonWordLoader {
     }
 }
 
+#[cfg(feature = "serde_json")]
 impl WordLoader for JsonWordLoader {
     fn load_words<R: io::Read>(&mut self, reader: R) -> Result<HashMap<String, i32>, BuildError> {
         let data: HashMap<String, i32> = serde_json::from_reader(reader)?;
@@ -24,6 +25,7 @@ impl WordLoader for JsonWordLoader {
     }
 }
 
+#[cfg(feature = "serde_json")]
 impl Default for JsonWordLoader {
     fn default() -> Self {
         Self::new()
@@ -70,6 +72,7 @@ impl CsvWordLoader {
     }
 }
 
+#[cfg(feature = "csv")]
 impl Default for CsvWordLoader {
     fn default() -> Self {
         Self::new()

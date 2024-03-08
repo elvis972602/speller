@@ -13,9 +13,6 @@ path = "src/lib.rs"
 lazy_static = "1.4.0"
 levenshtein_automata = "0.2.1"
 
-[features]
-default = ["serde_json"]
-
 [dependencies.serde_json]
 version = "1.0.114"
 optional = true
