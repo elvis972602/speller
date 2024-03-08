@@ -72,7 +72,8 @@ mod test_speller {
 
     #[test]
     fn test_speller_json() {
-        let speller = Speller::builder(vec!["./tests/files/en.json".to_string()])
+        let speller = Speller::builder()
+            .dict_file(vec!["./tests/files/en.json".to_string()])
             .build()
             .unwrap();
         let words = ["Yessss", "conticorrantue", "obrigada", "oi_biagomes", "haa"];
@@ -84,7 +85,8 @@ mod test_speller {
 
     #[test]
     fn test_speller_csv() {
-        let speller = Speller::builder(vec!["./tests/files/en.csv".to_string()])
+        let speller = Speller::builder()
+            .dict_file(vec!["./tests/files/en.csv".to_string()])
             .build()
             .unwrap();
         let words = ["Yessss", "conticorrantue", "obrigada", "oi_biagomes", "haa"];
@@ -96,7 +98,8 @@ mod test_speller {
 
     #[test]
     fn test_speller_tsv() {
-        let speller = Speller::builder(vec!["./tests/files/en.tsv".to_string()])
+        let speller = Speller::builder()
+            .dict_file(vec!["./tests/files/en.tsv".to_string()])
             .build()
             .unwrap();
         let words = ["Yessss", "conticorrantue", "obrigada", "oi_biagomes", "haa"];
@@ -108,7 +111,8 @@ mod test_speller {
 
     #[test]
     fn test_speller_txt() {
-        let speller = Speller::builder(vec!["./tests/files/en.txt".to_string()])
+        let speller = Speller::builder()
+            .dict_file(vec!["./tests/files/en.txt".to_string()])
             .build()
             .unwrap();
         let words = ["Yessss", "conticorrantue", "obrigada", "oi_biagomes", "haa"];
@@ -116,5 +120,11 @@ mod test_speller {
             let _correct = speller.correction(word);
             let _candidates = speller.candidates(word, 2);
         }
+    }
+
+    #[test]
+    fn test_speller_no_dict() {
+        let speller = Speller::builder().build();
+        assert!(speller.is_err());
     }
 }

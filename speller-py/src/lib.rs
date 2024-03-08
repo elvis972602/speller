@@ -10,17 +10,20 @@ struct Speller(speller_rs::Speller);
 #[pymethods]
 impl Speller {
     #[new]
-    #[pyo3(text_signature = "(dict_file, distance, case_sensitive=False, dict=None)")]
+    #[pyo3(text_signature = "(distance, case_sensitive=False, dict_file=None, dict=None)")]
     fn new(
-        dict_file: Vec<String>,
         distance: i32,
         case_sensitive: bool,
+        dict_file: Option<Vec<String>>,
         dict: Option<Vec<HashMap<String, i32>>>,
     ) -> PyResult<Self> {
-        let mut speller_builder = speller_rs::Speller::builder(dict_file);
+        let mut speller_builder = speller_rs::Speller::builder();
         speller_builder
             .distance(distance)
             .case_sensitive(case_sensitive);
+        if let Some(dict_file) = dict_file {
+            speller_builder.dict_file(dict_file);
+        }
         if let Some(dict) = dict {
             speller_builder.dict_source(dict);
         }

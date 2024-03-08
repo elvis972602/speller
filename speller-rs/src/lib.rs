@@ -25,8 +25,8 @@ pub struct Speller {
 }
 
 impl Speller {
-    pub fn builder(local_file: Vec<String>) -> SpellerBuilder {
-        SpellerBuilder::new(local_file)
+    pub fn builder() -> SpellerBuilder {
+        SpellerBuilder::new()
     }
 
     fn known(&self, word: &str) -> bool {
@@ -168,24 +168,30 @@ impl Speller {
 }
 
 pub struct SpellerBuilder {
-    local_file: Vec<String>,
+    dict_file: Vec<String>,
     distance: i32,
     case_sensitive: bool,
     dict_source: Vec<HashMap<String, i32>>,
 }
 
+impl Default for SpellerBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SpellerBuilder {
-    pub fn new(local_file: Vec<String>) -> SpellerBuilder {
+    pub fn new() -> SpellerBuilder {
         SpellerBuilder {
-            local_file,
+            dict_file: vec![],
             distance: 2,
             case_sensitive: false,
             dict_source: vec![],
         }
     }
 
-    pub fn local_file(&mut self, local_file: Vec<String>) -> &mut Self {
-        self.local_file = local_file;
+    pub fn dict_file(&mut self, local_file: Vec<String>) -> &mut Self {
+        self.dict_file = local_file;
         self
     }
 
@@ -205,10 +211,6 @@ impl SpellerBuilder {
     }
 
     pub fn build(&self) -> Result<Speller, BuildError> {
-        if self.local_file.is_empty() {
-            return Err(BuildError::DictFileNotFound);
-        }
-
         let mut speller = Speller {
             distance: self.distance,
             case_sensitive: self.case_sensitive,
@@ -216,7 +218,7 @@ impl SpellerBuilder {
             word_frequency: WordFrequency::new(self.case_sensitive),
         };
 
-        for local_dictionary in self.local_file.iter() {
+        for local_dictionary in self.dict_file.iter() {
             let path = Path::new(local_dictionary);
             match path.extension().and_then(OsStr::to_str) {
                 #[cfg(feature = "serde_json")]
@@ -244,6 +246,10 @@ impl SpellerBuilder {
 
         for dict in self.dict_source.iter() {
             speller.word_frequency.load_dict(dict.clone())?;
+        }
+
+        if speller.word_frequency.unique_words == 0 {
+            return Err(BuildError::DictNotFound);
         }
 
         Ok(speller)

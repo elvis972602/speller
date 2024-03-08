@@ -12,7 +12,7 @@ pub enum BuildError {
     CSVIndexError,
     TXTIndexError,
     ParseCountError,
-    DictFileNotFound,
+    DictNotFound,
 }
 
 impl From<io::Error> for BuildError {
@@ -48,7 +48,7 @@ impl std::fmt::Display for BuildError {
             BuildError::CSVIndexError => write!(f, "CSV index error"),
             BuildError::TXTIndexError => write!(f, "TXT index error"),
             BuildError::ParseCountError => write!(f, "Error parsing count"),
-            BuildError::DictFileNotFound => write!(f, "Dictionary file not found"),
+            BuildError::DictNotFound => write!(f, "Dictionary not found"),
         }
     }
 }

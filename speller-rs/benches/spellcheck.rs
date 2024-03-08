@@ -3,7 +3,8 @@ use speller_rs::Speller;
 use std::time::Duration;
 
 fn spellcheck() {
-    let speller = Speller::builder(vec!["../data/en.json".to_string()])
+    let speller = Speller::builder()
+        .dict_file(vec!["../data/en.json".to_string()])
         .language(vec![])
         .build()
         .unwrap();
