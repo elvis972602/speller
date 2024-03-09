@@ -27,3 +27,7 @@ criterion = "0.5.1"
 [[bench]]
 name = "spellcheck"
 harness = false
+
+[[bench]]
+name = "levenshtein"
+harness = false

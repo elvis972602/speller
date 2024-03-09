@@ -1,11 +1,9 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use speller_rs::Speller;
-use std::time::Duration;
 
 fn spellcheck() {
     let speller = Speller::builder()
         .dict_file(vec!["../data/en.json".to_string()])
-        .language(vec![])
         .build()
         .unwrap();
     let word = "zayraizquierdo_";
@@ -18,7 +16,7 @@ fn criterion_benchmark(c: &mut Criterion) {
 
 criterion_group!(
     name = benches;
-    config = Criterion::default().measurement_time(Duration::from_secs(100));
+    config = Criterion::default().sample_size(10);
     targets = criterion_benchmark
 );
 

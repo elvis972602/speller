@@ -42,16 +42,12 @@ impl Speller {
     fn candidates(&self, word: &str, distance: u8) -> PyResult<Option<Vec<Vec<String>>>> {
         Ok(self.0.candidates(word, distance))
     }
-
-    #[pyo3(text_signature = "($self, word1, word2)")]
-    fn edit_distance(&self, word1: &str, word2: &str) -> PyResult<Option<u8>> {
-        Ok(self.0.edit_distance(word1, word2))
-    }
 }
 
 #[pyfunction]
-fn languages() -> PyResult<Vec<String>> {
-    Ok(speller_rs::Speller::languages())
+#[pyo3(text_signature = "(word1, word2, limit)")]
+fn edit_distance(word1: &str, word2: &str, limit: usize) -> PyResult<Option<usize>> {
+    Ok(speller_rs::edit_distance(word1, word2, limit))
 }
 
 create_exception!(
@@ -65,6 +61,6 @@ create_exception!(
 fn speller_py(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<Speller>()?;
     m.add("BuildError", _py.get_type::<BuildError>())?;
-    m.add_function(wrap_pyfunction!(languages, m)?)?;
+    m.add_function(wrap_pyfunction!(edit_distance, m)?)?;
     Ok(())
 }
