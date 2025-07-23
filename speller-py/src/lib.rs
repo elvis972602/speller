@@ -58,9 +58,9 @@ create_exception!(
 );
 
 #[pymodule]
-fn speller_py(_py: Python, m: &PyModule) -> PyResult<()> {
+fn speller_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<Speller>()?;
-    m.add("BuildError", _py.get_type::<BuildError>())?;
+    m.add("BuildError", m.py().get_type::<BuildError>())?;
     m.add_function(wrap_pyfunction!(edit_distance, m)?)?;
     Ok(())
 }

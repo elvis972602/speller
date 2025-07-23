@@ -9,5 +9,5 @@ name = "speller_py"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { version = "0.20.3", features = ["extension-module"] }
+pyo3 = { version = "0.25.1", features = ["extension-module"] }
 speller-rs = { path = "../speller-rs" , features = ["serde_json", "csv"] }
