@@ -38,11 +38,11 @@ impl From<csv::Error> for BuildError {
 impl std::fmt::Display for BuildError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            BuildError::IoError(e) => write!(f, "IO error: {}", e),
+            BuildError::IoError(e) => write!(f, "IO error: {e}"),
             #[cfg(feature = "serde_json")]
-            BuildError::JsonError(e) => write!(f, "JSON error: {}", e),
+            BuildError::JsonError(e) => write!(f, "JSON error: {e}"),
             #[cfg(feature = "csv")]
-            BuildError::CSVError(e) => write!(f, "CSV error: {}", e),
+            BuildError::CSVError(e) => write!(f, "CSV error: {e}"),
             BuildError::FileTypeNotSupported => write!(f, "File type not supported"),
             BuildError::NotJsonFile => write!(f, "Local dictionary must be a JSON file"),
             BuildError::CSVIndexError => write!(f, "CSV index error"),

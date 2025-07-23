@@ -83,7 +83,7 @@ impl Speller {
                         return Some(item.to_string());
                     }
                     // add to best match
-                    if best_match.as_ref().map_or(true, |&(_, d)| distance < d) {
+                    if best_match.as_ref().is_none_or(|&(_, d)| distance < d) {
                         best_match = Some((item.to_string(), distance));
                     }
                 }
