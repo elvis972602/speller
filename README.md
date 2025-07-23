@@ -2,6 +2,7 @@
 
 [![Rust](https://img.shields.io/badge/rust-1.70+-orange.svg)](https://www.rust-lang.org)
 [![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org)
+[![PyO3](https://img.shields.io/badge/PyO3-0.25.1-blue.svg)](https://github.com/PyO3/pyo3)
 
 A high-performance spelling checker that uses [Levenshtein automaton](https://en.wikipedia.org/wiki/Levenshtein_automaton) to provide spell checking with **linear time complexity**. Built in Rust with Python bindings.
 
